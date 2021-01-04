@@ -153,6 +153,16 @@ app.delete("/api/audiobook/:id", (req, res) => {
 
 // 9. DELETE - Delete all entities where boolean value is false
 
+app.delete("/delete/not_active", (req, res) => {
+  connection.query("DELETE FROM audiobook WHERE active = 0", (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error updating data...");
+    } else {
+      res.status(200).send("Audiobooks not-active successfully deleted !");
+    }
+  });
+});
 
 
 
