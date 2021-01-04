@@ -30,6 +30,7 @@ connection.connect(function(err) {
 });
 
 // 1. GET - Retrieve all of the data from your table
+
 app.get('/', (req, res) => {
     connection.query('SELECT * FROM audiobook', (err, result) => {
         if(err) {
@@ -44,6 +45,7 @@ app.get('/', (req, res) => {
 });
 
 // 2. GET - Retrieve specific fields (i.e. id, names, dates, etc.)
+
 app.get("/api/audiobook/:id", (req, res) => {
   connection.query(
     `SELECT * FROM audiobook WHERE id=?`,
@@ -139,8 +141,6 @@ app.put("/toggle_active/:id", (req, res) => {
     }
   );
 });
-
-
 
 // 8. DELETE - Delete an entity
 
