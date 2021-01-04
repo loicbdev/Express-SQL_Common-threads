@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
 // 2. GET - Retrieve specific fields (i.e. id, names, dates, etc.)
 app.get("/api/audiobook/:id", (req, res) => {
   connection.query(
-    `SELECT * from audiobook WHERE id=?`,
+    `SELECT * FROM audiobook WHERE id=?`,
     [req.params.id],
     (err, results) => {
       if (err) {
@@ -92,17 +92,53 @@ app.post("/api/audiobook", (req, res) => {
 
 // 6. PUT - Modification of an entity
 
+app.put('/:id', (request, response) => {
+  let sql = "UPDATE audiobook SET ? WHERE id=?";
+  connection.query(sql, [request.body, request.params.id], (err, results) => {
+    if (err) {
+      response.status(500).send({ errorMessage: 'Error to update the audiobook' });
+    } else {
+      sql = "SELECT * FROM audiobook WHERE id=?";
+      connection.query(sql, request.params.id, (err, results) => {
+        if (results.length === 0) {
+          response.status(404).send({ errorMessage: `No audiobook found with this id: ${request.params.id}` });
+        } else {
+          response.status(200).json(results[0]);
+        }
+      });
+    }
+  });
+});
 
 // 7. PUT - Toggle a Boolean value
+
+app.put("/toggle_active/:id", (req, res) => {
+  const AudioBookId = req.params.id;
+  connection.query(
+    "UPDATE audiobook SET active = !active WHERE id = ?",
+    [AudioBookId],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error updating data...");
+      } else {
+        res
+          .status(200)
+          .send("Audiobook's active status has been successfully updated !");
+      }
+    }
+  );
+});
+
 
 
 // 8. DELETE - Delete an entity
 
 app.delete("/api/audiobook/:id", (req, res) => {
-  const idAudioBook = req.params.id;
+  const AudioBookId = req.params.id;
   connection.query(
     "DELETE FROM audiobook WHERE id = ?",
-    [idAudioBook],
+    [AudioBookId],
     (err) => {
       if (err) {
         console.log(err);
