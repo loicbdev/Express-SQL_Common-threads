@@ -194,10 +194,14 @@ app.put("/toggle/:id", (req, res) => {
   connection.query(
     "UPDATE audiobook SET active = !active WHERE id = ?",
     [req.params.id],
-    (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(500).send("Error updating data...");
+    (error, result) => {
+      if (error) {
+        res
+          .status(500)
+          .send("Error updating data...");
+      } else if (result.affectedRows < 1) {
+        res 
+          .sendStatus(404);
       } else {
         res
           .status(200)
