@@ -8,6 +8,10 @@ const port = 8080;
 app.use(cors());
 app.use(express.json());
 
+// We use a middleware to read json formatted Body request
+// Express ne peut pas lire l'objet JSON par défaut... Pour le faire fonctionner, nous devons utiliser un middleware express intégré.
+app.use(express.json());
+
 
 const connection = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -25,6 +29,7 @@ connection.connect(function(err) {
   console.log('connected as id ' + connection.threadId);
 });
 
+// 1. GET - Retrieve all of the data from your table
 app.get('/', (req, res) => {
     connection.query('SELECT * FROM audiobook', (err, result) => {
         if(err) {
@@ -37,6 +42,87 @@ app.get('/', (req, res) => {
         }
     });
 });
+
+// 2. GET - Retrieve specific fields (i.e. id, names, dates, etc.)
+app.get("/api/audiobook/:id", (req, res) => {
+  connection.query(
+    `SELECT * from audiobook WHERE id=?`,
+    [req.params.id],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error retrieving data");
+      } else {
+        res.status(200).json(results);
+      }
+    }
+  );
+});
+
+// 3. GET - Retrieve a data set with the following filters (use one route per filter type):
+// A filter for data that contains... (e.g. name containing the string 'wcs')
+// A filter for data that starts with... (e.g. name beginning with 'campus')
+// A filter for data that is greater than... (e.g. date greater than 18/10/2010)
+
+
+
+
+
+// 4. GET - Ordered data recovery (i.e. ascending, descending) - The order should be passed as a route parameter
+
+
+
+// 5. POST - Insertion of a new entity
+
+app.post("/api/audiobook", (req, res) => {
+  const { title, duration, active, created_at } = req.body;
+  connection.query(
+    "INSERT INTO audiobook (title, duration, active, created_at) VALUES(?, ?, ?, ?)",
+    [title, duration, active, created_at],
+    (err, results) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error saving a movie");
+      } else {
+        res.status(200).send("Successfully saved");
+      }
+    }
+  );
+});
+
+// 6. PUT - Modification of an entity
+
+
+// 7. PUT - Toggle a Boolean value
+
+
+// 8. DELETE - Delete an entity
+
+app.delete("/api/audiobook/:id", (req, res) => {
+  const idAudioBook = req.params.id;
+  connection.query(
+    "DELETE FROM audiobook WHERE id = ?",
+    [idAudioBook],
+    (err) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("😱 Error deleting an audiobook");
+      } else {
+        res.status(200).send("🎉 Audiobook deleted!");
+      }
+    }
+  );
+});
+
+
+// 9. DELETE - Delete all entities where boolean value is false
+
+
+
+
+
+
+
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
