@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const connection = require('./config');
+const { request } = require('express');
 const app = express();
 const port = 8080;
 
 app.use(cors());
-app.use(express.json());
 
 // We use a middleware to read json formatted Body request
 // Express ne peut pas lire l'objet JSON par défaut... Pour le faire fonctionner, nous devons utiliser un middleware express intégré.
@@ -14,31 +14,45 @@ app.use(express.json());
 
 // 1. GET - Retrieve all of the data from your table
 
-app.get('/', (req, res) => {
-    connection.query('SELECT * FROM audiobook', (err, result) => {
-        if(err) {
-            res.status(500).send(err);
+app.get('/', (request, response) => {
+    connection.query('SELECT * FROM audiobook', (error, result) => {
+        if(error) {
+          response.status(500).send(error);
         }
         if(result.lenght === 0) {
-            res.sendStatus(404);
+          response.sendStatus(404);
         } else {
-        res.status(200).send(result);
+          response.status(200).json(result);
         }
     });
 });
 
 // 2. GET - Retrieve specific fields (i.e. id, names, dates, etc.)
 
+app.get("/titles", (req, res) => {
+  connection.query(
+    `SELECT title FROM audiobook`,
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
+    }
+  );
+});
+
 app.get("/:id", (req, res) => {
   connection.query(
     `SELECT * FROM audiobook WHERE id=?`,
     [req.params.id],
-    (err, results) => {
-      if (err) {
-        console.log(err);
-        res.status(500).send("Error retrieving data");
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else if (result.length === 0) {
+        res.sendStatus(404);
       } else {
-        res.status(200).json(results[0]);
+        res.status(200).json(result[0]);
       }
     }
   );
@@ -46,81 +60,93 @@ app.get("/:id", (req, res) => {
 
 // 3. GET - Retrieve a data set with the following filters (use one route per filter type):
 // 3.1. A filter for data that contains... (e.g. name containing the string 'wcs')
-// ex : http://localhost:8080/title/?contains=tempête
-app.get("/title", (req, res) => {
-  const sql = "SELECT * FROM audiobook WHERE title LIKE ?";
-  const sqlValue = [];
-  req.query.contains && sqlValue.push(`%${req.query.contains}%`);
+// ex : http://localhost:8080/titles/contains?title=Fondation
 
-  connection.query(sql, sqlValue, (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error retrieving data");
-    } else if (results.length > 0) {
-      res.status(200).json(results);
-    } else {
-      res
-        .status(404)
-        .send(`No audiobook containing '${req.query.contains}' in its title...`);
+app.get("/titles/contains", (req, res) => {
+  connection.query(
+    `SELECT * FROM audiobook WHERE title LIKE ?`,
+    [`%${req.query.title}%`],
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
     }
-  });
+  );
 });
 
 // 3.2. A filter for data that starts with... (e.g. name beginning with 'campus')
+// ex : http://localhost:8080/titles/startWith?title=F
 
-app.get("/title/starting", (req, res) => {
-  const sql = "SELECT * FROM book WHERE title LIKE ?";
-  const sqlValue = [];
-  req.query.with && sqlValue.push(`${req.query.with}%`);
-
-  connection.query(sql, sqlValue, (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error retrieving data");
-    } else if (results.length > 0) {
-      res.status(200).json(results);
-    } else {
-      res
-        .status(404)
-        .send(`No audiobook starting with '${req.query.with}' in its title...`);
+app.get("/titles/startWith", (req, res) => {
+  connection.query(
+    `SELECT * FROM audiobook WHERE title LIKE ?`,
+    [`${req.query.title}%`],
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
     }
-  });
+  );
 });
 
 // 3.3 A filter for data that is greater than... (e.g. date greater than 18/10/2010)
+// ex : http://localhost:8080/duration/1000
 
-app.get("/created_at", (req, res) => {
-  let sql = "SELECT * FROM book WHERE created_at > ?";
-  const sqlValue = [];
-  req.query.greaterThan && sqlValue.push(`${req.query.greaterThan}`);
-
-  connection.query(sql, sqlValue, (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error retrieving data");
-    } else if (results.length > 0) {
-      res.status(200).json(results);
-    } else {
-      res.status(404).send(`No audiobook beyond '${req.query.greaterThan}'...`);
+app.get("/duration/:duration", (req, res) => {
+  connection.query(
+    `SELECT * FROM audiobook WHERE duration > ?`,
+    [`${req.params.duration}%`],
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
     }
-  });
+  );
 });
 
+// ex : http://localhost:8080/created/2020-01-01 (avec tri par title en plus)
 
+// query : filtrer et trier
+// params : tout le reste (mieux va utiliser les params!)
 
+app.get("/created/:created", (req, res) => {
+  connection.query(
+    `SELECT * FROM audiobook WHERE created_at > ? ORDER BY title ASC`,
+    [`${req.params.created}%`],
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
+    }
+  );
+});
 
 // 4. GET - Ordered data recovery (i.e. ascending, descending) - The order should be passed as a route parameter
+// EX : http://localhost:8080/titles/order/ASC ou http://localhost:8080/titles/order/asc
 
-app.get("/asc", (req, res) => {
-  let sql = `SELECT * FROM audiobook ORDER BY duration ASC`;
-  connection.query(sql, (err, results) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error retrieving data");
-    } else if (results.length > 0) {
-      res.status(200).json(results);
+app.get("/titles/order/:value", (req, res) => {
+  let order = 'ASC';
+  if (req.params.value.toLowerCase() === 'desc') {
+    order = 'DESC';
+  }
+  connection.query(
+    `SELECT * FROM audiobook ORDER BY title ${order}`,
+    (error, result) => {
+      if (error) {
+        res.status(500).send(error);
+      } else {
+        res.status(200).json(result);
+      }
     }
-  });
+  );
 });
 
 // 5. POST - Insertion of a new entity
@@ -183,7 +209,7 @@ app.put("/toggle/:id", (req, res) => {
 
 // 8. DELETE - Delete an entity
 
-app.delete("/api/audiobook/:id", (req, res) => {
+app.delete("/delete/:id", (req, res) => {
   const AudioBookId = req.params.id;
   connection.query(
     "DELETE FROM audiobook WHERE id = ?",
@@ -199,10 +225,9 @@ app.delete("/api/audiobook/:id", (req, res) => {
   );
 });
 
-
 // 9. DELETE - Delete all entities where boolean value is false
 
-app.delete("/delete/not_active", (req, res) => {
+app.delete("/delete/not-active", (req, res) => {
   connection.query("DELETE FROM audiobook WHERE active = 0", (err, results) => {
     if (err) {
       console.log(err);
@@ -212,12 +237,6 @@ app.delete("/delete/not_active", (req, res) => {
     }
   });
 });
-
-
-
-
-
-
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
