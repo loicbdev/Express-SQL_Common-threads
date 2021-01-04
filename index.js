@@ -163,11 +163,11 @@ app.put('/:id', (request, response) => {
 
 // 7. PUT - Toggle a Boolean value
 
-app.put("/toggle_active/:id", (req, res) => {
-  const AudioBookId = req.params.id;
+app.put("/toggle/:id", (req, res) => {
+//  const AudioBookId = req.params.id;
   connection.query(
     "UPDATE audiobook SET active = !active WHERE id = ?",
-    [AudioBookId],
+    [req.params.id],
     (err, results) => {
       if (err) {
         console.log(err);
