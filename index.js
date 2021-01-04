@@ -70,7 +70,17 @@ app.get("/api/audiobook/:id", (req, res) => {
 
 // 4. GET - Ordered data recovery (i.e. ascending, descending) - The order should be passed as a route parameter
 
-
+app.get("/asc", (req, res) => {
+  let sql = `SELECT * FROM audiobook ORDER BY duration ASC`;
+  connection.query(sql, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error retrieving data");
+    } else if (results.length > 0) {
+      res.status(200).json(results);
+    }
+  });
+});
 
 // 5. POST - Insertion of a new entity
 
