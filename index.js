@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const mysql = require('mysql');
-require('dotenv').config()
+const connection = require('./config');
 const app = express();
 const port = 8080;
 
@@ -12,22 +11,6 @@ app.use(express.json());
 // Express ne peut pas lire l'objet JSON par défaut... Pour le faire fonctionner, nous devons utiliser un middleware express intégré.
 app.use(express.json());
 
-
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-});
- 
-connection.connect(function(err) {
-  if (err) {
-    console.error('error connecting: ' + err.stack);
-    return;
-  }
- 
-  console.log('connected as id ' + connection.threadId);
-});
 
 // 1. GET - Retrieve all of the data from your table
 
@@ -46,7 +29,7 @@ app.get('/', (req, res) => {
 
 // 2. GET - Retrieve specific fields (i.e. id, names, dates, etc.)
 
-app.get("/api/audiobook/:id", (req, res) => {
+app.get("/:id", (req, res) => {
   connection.query(
     `SELECT * FROM audiobook WHERE id=?`,
     [req.params.id],
@@ -55,17 +38,73 @@ app.get("/api/audiobook/:id", (req, res) => {
         console.log(err);
         res.status(500).send("Error retrieving data");
       } else {
-        res.status(200).json(results);
+        res.status(200).json(results[0]);
       }
     }
   );
 });
 
 // 3. GET - Retrieve a data set with the following filters (use one route per filter type):
-// A filter for data that contains... (e.g. name containing the string 'wcs')
-// A filter for data that starts with... (e.g. name beginning with 'campus')
-// A filter for data that is greater than... (e.g. date greater than 18/10/2010)
+// 3.1. A filter for data that contains... (e.g. name containing the string 'wcs')
+// ex : http://localhost:8080/title/?contains=tempête
+app.get("/title", (req, res) => {
+  const sql = "SELECT * FROM audiobook WHERE title LIKE ?";
+  const sqlValue = [];
+  req.query.contains && sqlValue.push(`%${req.query.contains}%`);
 
+  connection.query(sql, sqlValue, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error retrieving data");
+    } else if (results.length > 0) {
+      res.status(200).json(results);
+    } else {
+      res
+        .status(404)
+        .send(`No audiobook containing '${req.query.contains}' in its title...`);
+    }
+  });
+});
+
+// 3.2. A filter for data that starts with... (e.g. name beginning with 'campus')
+
+app.get("/title/starting", (req, res) => {
+  const sql = "SELECT * FROM book WHERE title LIKE ?";
+  const sqlValue = [];
+  req.query.with && sqlValue.push(`${req.query.with}%`);
+
+  connection.query(sql, sqlValue, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error retrieving data");
+    } else if (results.length > 0) {
+      res.status(200).json(results);
+    } else {
+      res
+        .status(404)
+        .send(`No audiobook starting with '${req.query.with}' in its title...`);
+    }
+  });
+});
+
+// 3.3 A filter for data that is greater than... (e.g. date greater than 18/10/2010)
+
+app.get("/created_at", (req, res) => {
+  let sql = "SELECT * FROM book WHERE created_at > ?";
+  const sqlValue = [];
+  req.query.greaterThan && sqlValue.push(`${req.query.greaterThan}`);
+
+  connection.query(sql, sqlValue, (err, results) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error retrieving data");
+    } else if (results.length > 0) {
+      res.status(200).json(results);
+    } else {
+      res.status(404).send(`No audiobook beyond '${req.query.greaterThan}'...`);
+    }
+  });
+});
 
 
 
