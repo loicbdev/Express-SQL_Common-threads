@@ -156,12 +156,12 @@ app.post("/api/audiobook", (req, res) => {
   connection.query(
     "INSERT INTO audiobook (title, duration, active, created_at) VALUES(?, ?, ?, ?)",
     [title, duration, active, created_at],
-    (err, results) => {
+    (err, result) => {
       if (err) {
         console.log(err);
         res.status(500).send("Error saving a movie");
       } else {
-        res.status(200).send("Successfully saved");
+        res.status(201).send("Successfully saved");
       }
     }
   );
@@ -171,16 +171,16 @@ app.post("/api/audiobook", (req, res) => {
 
 app.put('/:id', (request, response) => {
   let sql = "UPDATE audiobook SET ? WHERE id=?";
-  connection.query(sql, [request.body, request.params.id], (err, results) => {
+  connection.query(sql, [request.body, request.params.id], (err, result) => {
     if (err) {
       response.status(500).send({ errorMessage: 'Error to update the audiobook' });
     } else {
       sql = "SELECT * FROM audiobook WHERE id=?";
-      connection.query(sql, request.params.id, (err, results) => {
-        if (results.length === 0) {
+      connection.query(sql, request.params.id, (err, result) => {
+        if (result.length === 0) {
           response.status(404).send({ errorMessage: `No audiobook found with this id: ${request.params.id}` });
         } else {
-          response.status(200).json(results[0]);
+          response.status(200).json(result[0]);
         }
       });
     }
