@@ -151,17 +151,20 @@ app.get("/titles/order/:value", (req, res) => {
 
 // 5. POST - Insertion of a new entity
 
-app.post("/api/audiobook", (req, res) => {
-  const { title, duration, active, created_at } = req.body;
+app.post("/", (req, res) => {
+  const { title, duration, active, created_at: createdAt, performer_id: performerId } = req.body;
   connection.query(
-    "INSERT INTO audiobook (title, duration, active, created_at) VALUES(?, ?, ?, ?)",
-    [title, duration, active, created_at],
+    "INSERT INTO audiobook (title, duration, active, created_at, performer_id) VALUES(?, ?, ?, ?, ?)",
+    [title, duration, active, createdAt, performerId],
     (err, result) => {
-      if (err) {
-        console.log(err);
-        res.status(500).send("Error saving a movie");
+      if(err) {
+        res.status(500).send(err);
+      } else if(result.affectedRows < 1) {
+        res.sendStatus(404);
       } else {
-        res.status(201).send("Successfully saved");
+        res.status(201).json({
+          id: result.insertId,
+        });
       }
     }
   );
